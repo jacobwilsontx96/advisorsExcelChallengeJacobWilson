@@ -3,38 +3,68 @@ import {account} from "../Types/Account"
 import Paper from "@mui/material/Paper/Paper";
 import { Button, Card, CardContent, Grid, TextField } from "@mui/material";
 
+
+const PLACEHOLDER = "Placeholder";
+
 type AccountDashboardProps = {
   account: account;
   signOut: () => Promise<void>;
 }
 
 export const AccountDashboard = (props: AccountDashboardProps) => {
-  const [depositAmount, setDepositAmount] = useState(0);
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [depositAmount, setDepositAmount] = useState<number>(0);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
   const [account, setAccount] = useState(props.account); 
+  const [withdrawError, setWithdrawError] = useState<string>("");
+  const [depositError, setDepositError] = useState<string>("");
+  const [withdrawToched, setWithdrawFormToched] = useState<boolean>(false);
+  const [depositFormToched, setDepositFormToched] = useState<boolean>(false);
 
   const {signOut} = props;
 
   useEffect(() => {
-    console.log(account, "account4");
-  }, [account])
+    if(depositFormToched) {
+      if(depositAmount <= 0) {
+        setDepositError("Please enter a value greater than zero.");
+      } else if(depositAmount > 1000) {
+        setDepositError("Deposit cannot exceed $1000.");
+      } else if(account.type === 'credit' && depositAmount > Math.abs(account.amount)) {
+        setDepositError("Deposit cannot exceed credit account balance.");
+      } else {
+        setDepositError("");
+      }
+    }
+  }, [depositAmount, depositFormToched]);
+
+  useEffect(() => {
+    switch(withdrawAmount) {
+      case 0:
+        setWithdrawError("Please enter a value greater than zero.");
+        break;
+      default:
+        setWithdrawError("");
+        break;
+    }
+  }, [withdrawAmount]);
 
   const depositFunds = async () => {
-    const requestOptions = {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({amount: depositAmount})
+    if(!depositError) {
+      const requestOptions = {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({amount: depositAmount})
+      }
+      const response = await fetch(`http://localhost:3000/transactions/${account.accountNumber}/deposit`, requestOptions);
+      const data = await response.json();
+      setAccount({
+        accountNumber: data.account_number,
+        name: data.name,
+        amount: data.amount,
+        type: data.type,
+        creditLimit: data.credit_limit,
+        remainingWithdrawlLimit: data.remaining_withdrawl_limit
+      });
     }
-    const response = await fetch(`http://localhost:3000/transactions/${account.accountNumber}/deposit`, requestOptions);
-    const data = await response.json();
-    setAccount({
-      accountNumber: data.account_number,
-      name: data.name,
-      amount: data.amount,
-      type: data.type,
-      creditLimit: data.credit_limit,
-      remainingWithdrawlLimit: data.remaining_withdrawl_limit
-    });
   }
 
   const withdrawFunds = async () => {
@@ -75,14 +105,22 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
                   display: 'flex',
                   margin: 'auto',
                 }}
-                onChange={(e) => setDepositAmount(+e.target.value)}
+                error={!!depositError}
+                onChange={(e) =>  {
+                  if(!depositFormToched) setDepositFormToched(true);
+                  setDepositAmount(+e.target.value)
+                }}
               />
+              <p style={{ visibility: depositError ? 'visible' : 'hidden', color: 'red', margin: 0 }}>{depositError || PLACEHOLDER}</p>
               <Button 
                 variant="contained" 
                 sx={{
                   display: 'flex', 
                   margin: 'auto', 
-                  marginTop: 2}}
+                  marginTop: 2,
+                  opacity: !depositAmount || depositError ? "0.5" : "1",
+                  pointerEvents: !depositAmount || depositError ? "none" : "auto",
+                }}
                 onClick={depositFunds}
               >
                 Submit
@@ -102,14 +140,18 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
                   display: 'flex',
                   margin: 'auto',
                 }}
+                error={!!withdrawError}
                 onChange={(e) => setWithdrawAmount(+e.target.value)}
               />
+              <p style={{ visibility: withdrawError ? 'visible' : 'hidden', color: 'red', margin: 0 }}>{withdrawError || PLACEHOLDER}</p>
               <Button 
                 variant="contained" 
                 sx={{
                   display: 'flex', 
                   margin: 'auto', 
-                  marginTop: 2
+                  marginTop: 2,
+                  opacity: !withdrawAmount || withdrawError ? "0.5" : "1",
+                  pointerEvents: !withdrawAmount || withdrawError ? "none" : "auto",
                 }}
                 onClick={withdrawFunds}
                 >
