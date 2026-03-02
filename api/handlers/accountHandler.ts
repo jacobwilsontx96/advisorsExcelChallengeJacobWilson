@@ -2,9 +2,19 @@ import { query } from "../utils/db";
 
 export const getAccount = async (accountID: string) => {
   const res = await query(`
-    SELECT account_number, name, amount, type, credit_limit 
-    FROM accounts 
-    WHERE account_number = $1`,
+    SELECT accounts.account_number, accounts.name, accounts.amount, accounts.type, accounts.credit_limit,
+    COALESCE(SUM(withdrawls.withdrawl_amount), 0) AS prev_withdrawl_total 
+    FROM accounts
+    LEFT JOIN withdrawls 
+      ON accounts.account_number = withdrawls.account_number
+      AND withdrawls.withdrawl_date = CURRENT_DATE 
+    WHERE accounts.account_number = $1
+    GROUP BY 
+      accounts.account_number,
+      accounts.name,
+      accounts.amount,
+      accounts.type,
+      accounts.credit_limit;`,
     [accountID]
   );
 

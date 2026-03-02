@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {account} from "../Types/Account"
 import Paper from "@mui/material/Paper/Paper";
 import { Button, Card, CardContent, Grid, TextField } from "@mui/material";
@@ -15,6 +15,10 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
 
   const {signOut} = props;
 
+  useEffect(() => {
+    console.log(account, "account4");
+  }, [account])
+
   const depositFunds = async () => {
     const requestOptions = {
       method: 'PUT',
@@ -28,7 +32,8 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
       name: data.name,
       amount: data.amount,
       type: data.type,
-      creditLimit: data.credit_limit
+      creditLimit: data.credit_limit,
+      remainingWithdrawlLimit: data.remaining_withdrawl_limit
     });
   }
 
@@ -45,7 +50,8 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
       name: data.name,
       amount: data.amount,
       type: data.type,
-      creditLimit: data.credit_limit
+      creditLimit: data.credit_limit,
+      remainingWithdrawlLimit: data.remaining_withdrawl_limit
     });
   }
 

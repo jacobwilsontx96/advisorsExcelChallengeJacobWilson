@@ -1,11 +1,21 @@
 -- CREATE TABLE
 DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS withdrawls;
 CREATE TABLE accounts (
     account_number INTEGER PRIMARY KEY,
     name VARCHAR NOT NULL,
     amount INTEGER NOT NULL,
     type VARCHAR NOT NULL,
     credit_limit INTEGER
+);
+
+CREATE TABLE withdrawls (
+    account_number INTEGER,
+    withdrawl_amount INTEGER NOT NULL,
+    withdrawl_date DATE NOT NULL,
+    CONSTRAINT fk_account
+        FOREIGN KEY (account_number)
+        REFERENCES accounts(account_number)
 );
 
 ALTER TABLE accounts ADD CONSTRAINT verify_type

@@ -29,7 +29,8 @@ export const App = () => {
       name: data.name,
       amount: data.amount,
       type: data.type,
-      creditLimit: data.credit_limit
+      creditLimit: data.credit_limit,
+      remainingWithdrawlLimit: data.remaining_withdrawl_limit
     });
   }
   const signOut = async () => {
