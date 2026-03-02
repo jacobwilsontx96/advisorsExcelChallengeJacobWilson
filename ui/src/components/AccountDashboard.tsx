@@ -12,15 +12,19 @@ type AccountDashboardProps = {
 }
 
 export const AccountDashboard = (props: AccountDashboardProps) => {
+  const [account, setAccount] = useState(props.account);
   const [depositAmount, setDepositAmount] = useState<number>(0);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
-  const [account, setAccount] = useState(props.account); 
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(0); 
   const [withdrawError, setWithdrawError] = useState<string>("");
   const [depositError, setDepositError] = useState<string>("");
-  const [withdrawToched, setWithdrawFormToched] = useState<boolean>(false);
+  const [withdrawFormToched, setWithdrawFormToched] = useState<boolean>(false);
   const [depositFormToched, setDepositFormToched] = useState<boolean>(false);
 
   const {signOut} = props;
+
+  useEffect(() => {
+    console.log(account, 'account')
+  }, [account])
 
   useEffect(() => {
     if(depositFormToched) {
@@ -37,15 +41,24 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   }, [depositAmount, depositFormToched]);
 
   useEffect(() => {
-    switch(withdrawAmount) {
-      case 0:
+    if(withdrawFormToched) {
+      if(withdrawAmount <= 0) {
         setWithdrawError("Please enter a value greater than zero.");
-        break;
-      default:
+      } else if(withdrawAmount > 200) {
+        setWithdrawError("Withdrawl cannot exceed $200.");
+      } else if(withdrawAmount > account.remainingWithdrawlLimit) {
+        setWithdrawError("Withdrawl cannot exceed $400 daily.");
+      } else if(withdrawAmount % 5 !== 0) {
+        setWithdrawError("Withdrawl must be a multiple of 5.");
+      } else if(account.type !== 'credit' && withdrawAmount > account.amount) {
+        setWithdrawError("Withdrawl cannot exceed account balance.");
+      } else if(account.type === 'credit' && account.creditLimit - withdrawAmount <= 0) {
+        setWithdrawError("Withdrawl cannot exceed credit limit.");
+      } else {
         setWithdrawError("");
-        break;
+      }
     }
-  }, [withdrawAmount]);
+  }, [withdrawAmount, withdrawFormToched]);
 
   const depositFunds = async () => {
     if(!depositError) {
@@ -68,21 +81,23 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   }
 
   const withdrawFunds = async () => {
-    const requestOptions = {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({amount: withdrawAmount})
+    if(!withdrawError) {
+      const requestOptions = {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({amount: withdrawAmount})
+      }
+      const response = await fetch(`http://localhost:3000/transactions/${account.accountNumber}/withdraw`, requestOptions);
+      const data = await response.json();
+      setAccount({
+        accountNumber: data.account_number,
+        name: data.name,
+        amount: data.amount,
+        type: data.type,
+        creditLimit: data.credit_limit,
+        remainingWithdrawlLimit: data.remaining_withdrawl_limit
+      });
     }
-    const response = await fetch(`http://localhost:3000/transactions/${account.accountNumber}/withdraw`, requestOptions);
-    const data = await response.json();
-    setAccount({
-      accountNumber: data.account_number,
-      name: data.name,
-      amount: data.amount,
-      type: data.type,
-      creditLimit: data.credit_limit,
-      remainingWithdrawlLimit: data.remaining_withdrawl_limit
-    });
   }
 
   return (
@@ -141,7 +156,10 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
                   margin: 'auto',
                 }}
                 error={!!withdrawError}
-                onChange={(e) => setWithdrawAmount(+e.target.value)}
+                onChange={(e) =>  {
+                  if(!withdrawFormToched) setWithdrawFormToched(true);
+                  setWithdrawAmount(+e.target.value)
+                }}
               />
               <p style={{ visibility: withdrawError ? 'visible' : 'hidden', color: 'red', margin: 0 }}>{withdrawError || PLACEHOLDER}</p>
               <Button 
