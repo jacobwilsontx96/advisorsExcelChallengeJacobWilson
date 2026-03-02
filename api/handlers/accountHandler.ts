@@ -3,7 +3,7 @@ import { query } from "../utils/db";
 export const getAccount = async (accountID: string) => {
   const res = await query(`
     SELECT accounts.account_number, accounts.name, accounts.amount, accounts.type, accounts.credit_limit,
-    COALESCE(SUM(withdrawls.withdrawl_amount), 0) AS prev_withdrawl_total 
+    400 - COALESCE(SUM(withdrawls.withdrawl_amount), 0) AS remaining_withdrawl_limit 
     FROM accounts
     LEFT JOIN withdrawls 
       ON accounts.account_number = withdrawls.account_number
